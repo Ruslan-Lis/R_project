@@ -58,6 +58,11 @@ vel <- na.omit(vel)
 vel <- vel[vel$afterload == 0.2,]
 vel <- vel[c('Velocity','camera', 'group')]
 
+work <- My_data_table[c("name", "afterload", 'Work','camera', 'group')]
+work <- na.omit(Work) 
+Work <- Work[Work$afterload != 0.1,]
+Work <- Work[c('Work','camera', 'group')]
+
 # descriptive statistics and normal distribution check
 
 norm_distr <- vel %>%
@@ -145,6 +150,10 @@ ggplot(vel, aes(x = group, y = Velocity, col = camera, fill=camera))+
   stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))+
   geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.9), dotsize=0.5)
 
+ggplot(work, aes(x = afterload, y = work, col = camera, fill=camera))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'errorbar', width = 0.1, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'point', size = 3, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))
 
 mean_cl_boot(x = vel$Velocity)
 # check normal distribution of residuals
