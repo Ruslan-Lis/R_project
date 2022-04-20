@@ -190,30 +190,23 @@ TukeyHSD(aov(Velocity ~ group, data = filter(vel, camera=="ATRIUM")))
 # The Scheirer?Ray?Hare test is a nonparametric test used for a two-way factorial design
 # Note that for unbalanced designs, the scheirerRayHare function uses a type-II sum-of-squares
 
+for(aftl in unique(vel$afterload)){
+  
+  # scheirerRayHare(Velocyty ~ camera * group, data = My_data_table, type=1)
+  
+  print('afterload')
+  print(aftl[1])
+  print(scheirerRayHare(Velocity ~ camera * group, data = vel[vel$afterload==aftl,], type = "II"))
 
-?scheirerRayHare
-# scheirerRayHare(Velocyty ~ camera * group, data = My_data_table, type=1)
-
-vel_aov <- data.frame(colnames(c('afterload', 'aov')))
-vel_aov <- rbind(vel_aov, c('a','b'))
-vel_aov  
-for(value in unique(vel$afterload)){
-  value <- scheirerRayHare(Velocity ~ camera * group, data = vel[vel$afterload==value,], type = "III")
-  # print(value)
-  view(value)
-  # view(vel[vel$afterload==value,])
-  # scheirerRayHare(Velocity ~ camera * group, data = vel[vel$afterload==value,], type = "III")
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction. Запись идентична выше для Tukey
+  print(dunnTest(Velocity ~ camera, data = filter(vel, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  print(dunnTest(Velocity ~ camera, data = filter(vel, group=="MCT", afterload==aftl), method="bonferroni"))
+  # dunnTest(Velocity ~ camera, data = filter(vel, group=="DM2"), method="bonferroni")
+  print(dunnTest(Velocity ~ group, data = filter(vel, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  print(dunnTest(Velocity ~ group, data = filter(vel, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+  # dunnTest(Velocity ~ group, data = filter(vel, camera=="S"), method="bonferroni")
 }
-scheirerRayHare(Velocity ~ camera * group, data = vel, type = "III")
-# scheirerRayHare(Velocyty ~ camera * group, data = My_data_table, type=3)
 
-# Appropriate post-hoc tests might be Dunn test for each significant factor or interaction. Запись идентична выше для Tukey
-dunnTest(Velocity ~ camera, data = filter(vel, group=="CONTROL"), method="bonferroni")
-dunnTest(Velocity ~ camera, data = filter(vel, group=="MCT"), method="bonferroni")
-# dunnTest(Velocity ~ camera, data = filter(vel, group=="DM2"), method="bonferroni")
-dunnTest(Velocity ~ group, data = filter(vel, camera=="VENTRICLE"), method="bonferroni")
-dunnTest(Velocity ~ group, data = filter(vel, camera=="ATRIUM"), method="bonferroni")
-# dunnTest(Velocity ~ group, data = filter(vel, camera=="S"), method="bonferroni")
 
 # plots
 
