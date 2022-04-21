@@ -105,7 +105,6 @@ vel <- vel[vel$afterload != 1,]
 work <- work[work$afterload != 1,]
 les <- les[les$afterload != 1,]
 
-
 norm_distr_vel <- vel %>%
   group_by(camera, group, afterload) %>%
   summarise(n = n(), var = var(Velocity, na.rm=T), sd = sd(Velocity, na.rm=T), method = shapiro.test(Velocity)$method, p.value = shapiro.test(Velocity)$p.value)
@@ -121,10 +120,11 @@ norm_distr_les <- les %>%
 # check homogeneity of variance 
 # Levene Test
 
-leveneTest(Velocity ~ camera * group * afterload, data = vel)
-leveneTest(Work ~ camera * group * afterload, data = work)
-leveneTest(Les ~ camera * group * afterload, data = les)
-
+for(aftl in unique(vel$afterload)){
+  print(leveneTest(Velocity ~ camera * group, data = vel[vel$afterload==aftl,]))
+  print(leveneTest(Work ~ camera * group, data = work[work$afterload==aftl,]))
+  print(leveneTest(Les ~ camera * group, data = les[les$afterload==aftl,]))
+}
 # Bartlett test
 
 bartlett.test(Velocity ~ camera, data = vel)
@@ -198,7 +198,7 @@ for(aftl in unique(vel$afterload)){
   print(aftl[1])
   print(scheirerRayHare(Velocity ~ camera * group, data = vel[vel$afterload==aftl,], type = "II"))
 
-  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction. Запись идентична выше для Tukey
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
   print(dunnTest(Velocity ~ camera, data = filter(vel, group=="CONTROL", afterload==aftl), method="bonferroni"))
   print(dunnTest(Velocity ~ camera, data = filter(vel, group=="MCT", afterload==aftl), method="bonferroni"))
   # dunnTest(Velocity ~ camera, data = filter(vel, group=="DM2"), method="bonferroni")
@@ -206,6 +206,64 @@ for(aftl in unique(vel$afterload)){
   print(dunnTest(Velocity ~ group, data = filter(vel, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
   # dunnTest(Velocity ~ group, data = filter(vel, camera=="S"), method="bonferroni")
 }
+
+
+
+
+df <- vel
+for(aftl in unique(df$afterload)){
+
+  print('afterload')
+  print(aftl[1])
+  print(scheirerRayHare(Velocity ~ camera * group, data = df[df$afterload==aftl,], type = "II"))
+
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  print('CONTROL')
+  print(dunnTest(Velocity ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  print('MCT')
+  print(dunnTest(Velocity ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
+  print('VENTRICLE')
+  print(dunnTest(Velocity ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  print('ATRIUM')
+  print(dunnTest(Velocity ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+}
+
+df <- work
+for(aftl in unique(df$afterload)){
+  
+  print('afterload')
+  print(aftl[1])
+  print(scheirerRayHare(Work ~ camera * group, data = df[df$afterload==aftl,], type = "II"))
+  
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  print('CONTROL')
+  print(dunnTest(Work ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  print('MCT')
+  print(dunnTest(Work ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
+  print('VENTRICLE')
+  print(dunnTest(Work ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  print('ATRIUM')
+  print(dunnTest(Work ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+}
+
+df <- les
+for(aftl in unique(df$afterload)){
+  
+  print('afterload')
+  print(aftl[1])
+  print(scheirerRayHare(Les ~ camera * group, data = df[df$afterload==aftl,], type = "II"))
+  
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  print('CONTROL')
+  print(dunnTest(Les ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  print('MCT')
+  print(dunnTest(Les ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
+  print('VENTRICLE')
+  print(dunnTest(Les ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  print('ATRIUM')
+  print(dunnTest(Les ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+}
+
 
 
 # plots
