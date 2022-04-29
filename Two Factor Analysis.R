@@ -56,9 +56,18 @@ My_data_table$g_c <- as.factor(My_data_table$g_c)
 
 table(My_data_table$camera, My_data_table$group)
 
-# My_data_table %>% 
-#   group_by(afterload, na.rm=TRUE) %>%
-#   summarise_at(c('Velocity', 'Work', 'Les'), mean, na.rm=TRUE)
+My_data_table <- My_data_table[My_data_table$afterload != 0.1,]
+
+
+# descriptive_statistics <- My_data_table %>%
+#   group_by(afterload, g_c) %>%
+#   summarise_at(c('Velocity', 'Work', 'Les'),c(mean, sd, n_), na.rm=TRUE)
+
+
+# x <- My_data_table[My_data_table$afterload == 0.2 & My_data_table$g_c == 'MCT ATRIUM', ]
+# sd(x$Velocity, na.rm=TRUE)
+# n_(x$Velocity)
+
 
 # group_df <- group_by(.data = My_data_table, afterload, na.rm=TRUE)
 
@@ -98,8 +107,36 @@ ggplot(les, aes(x = afterload, y = Les, col = camera, shape = group, group = g_c
   stat_summary(fun.data = mean_cl_boot, geom = 'point', size = 3, position = position_dodge(0.2))+
   stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))
 
+mean_sdl(x$Velocity)
+ggplot(vel, aes(x = afterload, y = Velocity, col = camera, shape = group, group = g_c))+
+  stat_summary(fun.data = mean_sdl, geom = 'errorbar', width = 0.1, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'point', size = 3, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))
+mean_se(x$Velocity)
 
 # descriptive statistics and normal distribution check
+
+
+n_ <- function(x, na.rm=TRUE){
+  length(na.omit(x))
+}
+
+descriptive_statistics_vel <- vel %>%
+  group_by(afterload, g_c) %>%
+  summarise_at('Velocity',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_vel$c_i <- descriptive_statistics_vel$fn1$y - descriptive_statistics_vel$fn1$ymin
+
+descriptive_statistics_les <- les %>%
+  group_by(afterload, g_c) %>%
+  summarise_at('Les',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_les$c_i <- descriptive_statistics_les$fn1$y - descriptive_statistics_les$fn1$ymin
+
+descriptive_statistics_work <- work %>%
+  group_by(afterload, g_c) %>%
+  summarise_at('Work',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_work$c_i <- descriptive_statistics_work$fn1$y - descriptive_statistics_work$fn1$ymin
+
+
 
 vel <- vel[vel$afterload != 1,]
 work <- work[work$afterload != 1,]
@@ -190,7 +227,7 @@ TukeyHSD(aov(Velocity ~ group, data = filter(vel, camera=="ATRIUM")))
 # The Scheirer?Ray?Hare test is a nonparametric test used for a two-way factorial design
 # Note that for unbalanced designs, the scheirerRayHare function uses a type-II sum-of-squares
 
-for(aftl in unique(vel$afterload)){
+# for(aftl in unique(vel$afterload)){
   
   # scheirerRayHare(Velocyty ~ camera * group, data = My_data_table, type=1)
   
