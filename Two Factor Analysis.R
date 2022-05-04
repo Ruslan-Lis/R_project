@@ -36,6 +36,20 @@ setwd("e:/RNF_2021-2022/Remodel F-V physiol load-1")
 # load data
 
 My_data_table <- read.xlsx("phys_reg.xlsx", sheetIndex = 1)
+isom <- read.xlsx("isom.xlsx", sheetIndex = 2)
+
+# isom_n <- unique(isom$name)
+# phys_n <- unique(My_data_table$name)
+sort(unique(isom[isom$g_c == 'CONT RA', 'name']))
+sort(unique(My_data_table[My_data_table$g_c == 'CONTROL ATRIUM', 'name']))
+# sort(isom_n)
+# sort(phys_n) 
+My_data_table[My_data_table$g_c != 'MCT RA', c('name','g_c')]
+
+isom <- na.omit(isom)
+colnames(isom) <- c("name", "deformation","Tension", "camera", "group")
+isom$g_c <- paste(isom$group, isom$camera)
+isom <- isom[isom$deformation > 0.75,]
 
 colnames(My_data_table) <- c("name", "afterload", 'Velocity', 'Work', 'Les', 'temperature', 'camera', 'group')
 My_data_table$g_c <- paste(My_data_table$group, My_data_table$camera)   
@@ -51,6 +65,11 @@ My_data_table$name <- as.factor(My_data_table$name)
 My_data_table$afterload <- as.factor(My_data_table$afterload)
 My_data_table$g_c <- as.factor(My_data_table$g_c)
 
+isom$camera <- as.factor(isom$camera)
+isom$group <- as.factor(isom$group)
+isom$name <- as.factor(isom$name)
+isom$deformation <- as.factor(isom$deformation)
+isom$g_c <- as.factor(isom$g_c)
 
 # view design - balansed or imbalansed
 
@@ -90,6 +109,22 @@ ggplot(vel, aes(x = afterload, y = Velocity, col = camera, shape = group, group 
   # geom_point()+
   geom_smooth()
 
+ggplot(isom, aes(x = deformation, y = Tension, col = camera, shape = group, group = g_c))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'errorbar', width = 0.1, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'point', size = 3, position = position_dodge(0.2))+
+  stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))
+
+# function return vector(q2, q1, q3)
+mediana_quantile <- function(x, na.rm=TRUE){
+  z_ <- c(summary(x)[3], summary(x)[2], summary(x)[5])
+  names(z_) <- c('y','ymin','ymax')
+  return(z_)
+}
+
+ggplot(isom, aes(x = deformation, y = Tension, col = camera, shape = group, group = g_c))+
+  stat_summary(fun.data = mediana_quantile, geom = 'errorbar', width = 0.1, position = position_dodge(0.2))+
+  stat_summary(fun.data = mediana_quantile, geom = 'point', size = 3, position = position_dodge(0.2))+
+  stat_summary(fun.data = mediana_quantile, geom = 'line', position = position_dodge(0.2))
 
 
 ggplot(vel, aes(x = afterload, y = Velocity, col = camera, shape = group, group = g_c))+
@@ -120,6 +155,12 @@ mean_se(x$Velocity)
 n_ <- function(x, na.rm=TRUE){
   length(na.omit(x))
 }
+
+descriptive_statistics_isom <- isom %>%
+  group_by(deformation, g_c) %>%
+  summarise_at('Tension',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_isom$c_i <- descriptive_statistics_isom$fn1$y - descriptive_statistics_isom$fn1$ymin
+
 
 descriptive_statistics_vel <- vel %>%
   group_by(afterload, g_c) %>%
@@ -153,6 +194,11 @@ norm_distr_work <- work %>%
 norm_distr_les <- les %>%
   group_by(camera, group, afterload) %>%
   summarise(n = n(), var = var(Les, na.rm=T), sd = sd(Les, na.rm=T), method = shapiro.test(Les)$method, p.value = shapiro.test(Les)$p.value)
+
+norm_distr_isom <- isom %>%
+  group_by(camera, group, deformation) %>%
+  summarise(n = n(), var = var(Tension, na.rm=T), sd = sd(Tension, na.rm=T), method = shapiro.test(Tension)$method, p.value = shapiro.test(Tension)$p.value)
+
 
 # check homogeneity of variance 
 # Levene Test
@@ -301,6 +347,23 @@ for(aftl in unique(df$afterload)){
   print(dunnTest(Les ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
 }
 
+df <- isom
+for(aftl in unique(df$deformation)){
+  
+  print('preload')
+  print(aftl[1])
+  print(scheirerRayHare(Tension ~ camera * group, data = df[df$deformation==aftl,], type = "II"))
+  
+  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  print('CONTROL')
+  print(dunnTest(Tension ~ camera, data = filter(df, group=="CONT", deformation==aftl), method="bonferroni"))
+  print('MCT')
+  print(dunnTest(Tension ~ camera, data = filter(df, group=="MCT", deformation==aftl), method="bonferroni"))
+  print('VENTRICLE')
+  print(dunnTest(Tension ~ group, data = filter(df, camera=="RV", deformation==aftl), method="bonferroni"))
+  print('ATRIUM')
+  print(dunnTest(Tension ~ group, data = filter(df, camera=="RA", deformation==aftl), method="bonferroni"))
+}
 
 
 # plots
