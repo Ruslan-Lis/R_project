@@ -26,6 +26,15 @@ library("Hmisc")
 library(reshape2)
 library(broom)
 
+### functions
+n_ <- function(x, na.rm=TRUE){
+  length(na.omit(x))
+}
+mediana_quantile <- function(x, na.rm=TRUE){
+  z_ <- c(summary(x)[3], summary(x)[2], summary(x)[5])
+  names(z_) <- c('y','ymin','ymax')
+  return(z_)
+}
 
 # work dir
 
@@ -37,6 +46,7 @@ setwd("e:/RNF_2021-2022/Remodel F-V physiol load-1")
 
 My_data_table <- read.xlsx("phys_reg.xlsx", sheetIndex = 1)
 isom <- read.xlsx("isom.xlsx", sheetIndex = 2)
+
 
 # isom_n <- unique(isom$name)
 # phys_n <- unique(My_data_table$name)
@@ -115,11 +125,7 @@ ggplot(isom, aes(x = deformation, y = Tension, col = camera, shape = group, grou
   stat_summary(fun.data = mean_cl_boot, geom = 'line', position = position_dodge(0.2))
 
 # function return vector(q2, q1, q3)
-mediana_quantile <- function(x, na.rm=TRUE){
-  z_ <- c(summary(x)[3], summary(x)[2], summary(x)[5])
-  names(z_) <- c('y','ymin','ymax')
-  return(z_)
-}
+
 
 ggplot(isom, aes(x = deformation, y = Tension, col = camera, shape = group, group = g_c))+
   stat_summary(fun.data = mediana_quantile, geom = 'errorbar', width = 0.1, position = position_dodge(0.2))+
@@ -152,9 +158,7 @@ mean_se(x$Velocity)
 # descriptive statistics and normal distribution check
 
 
-n_ <- function(x, na.rm=TRUE){
-  length(na.omit(x))
-}
+
 
 descriptive_statistics_isom <- isom %>%
   group_by(deformation, g_c) %>%
@@ -299,16 +303,21 @@ for(aftl in unique(df$afterload)){
   print('afterload')
   print(aftl[1])
   print(scheirerRayHare(Velocity ~ camera * group, data = df[df$afterload==aftl,], type = "II"))
-
-  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
-  print('CONTROL')
-  print(dunnTest(Velocity ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
-  print('MCT')
-  print(dunnTest(Velocity ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
-  print('VENTRICLE')
-  print(dunnTest(Velocity ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
-  print('ATRIUM')
-  print(dunnTest(Velocity ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+  tmp <- dunnTest(Velocity ~ g_c, data = filter(df, afterload==aftl), method="bonferroni", list=TRUE)
+  vel_dann <- as.data.frame(tmp$res)
+  vel_dann <- vel_dann[c(1,2,5,6),]
+  vel_dann$P.adj <- vel_dann$P.unadj * 4
+  print(vel_dann)
+  
+  # # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  # print('CONTROL')
+  # print(dunnTest(Velocity ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  # print('MCT')
+  # print(dunnTest(Velocity ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
+  # print('VENTRICLE')
+  # print(dunnTest(Velocity ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  # print('ATRIUM')
+  # print(dunnTest(Velocity ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
 }
 
 df <- work
@@ -317,16 +326,20 @@ for(aftl in unique(df$afterload)){
   print('afterload')
   print(aftl[1])
   print(scheirerRayHare(Work ~ camera * group, data = df[df$afterload==aftl,], type = "II"))
-  
-  # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
-  print('CONTROL')
-  print(dunnTest(Work ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
-  print('MCT')
-  print(dunnTest(Work ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
-  print('VENTRICLE')
-  print(dunnTest(Work ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
-  print('ATRIUM')
-  print(dunnTest(Work ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
+  tmp <- dunnTest(Work ~ g_c, data = filter(df, afterload==aftl), method="bonferroni", list=TRUE)
+  Work_dann <- as.data.frame(tmp$res)
+  Work_dann <- Work_dann[c(1,2,5,6),]
+  Work_dann$P.adj <- Work_dann$P.unadj * 4
+  print(Work_dann)
+  # # Appropriate post-hoc tests might be Dunn test for each significant factor or interaction.The notation identical to Tukey, above.
+  # print('CONTROL')
+  # print(dunnTest(Work ~ camera, data = filter(df, group=="CONTROL", afterload==aftl), method="bonferroni"))
+  # print('MCT')
+  # print(dunnTest(Work ~ camera, data = filter(df, group=="MCT", afterload==aftl), method="bonferroni"))
+  # print('VENTRICLE')
+  # print(dunnTest(Work ~ group, data = filter(df, camera=="VENTRICLE", afterload==aftl), method="bonferroni"))
+  # print('ATRIUM')
+  # print(dunnTest(Work ~ group, data = filter(df, camera=="ATRIUM", afterload==aftl), method="bonferroni"))
 }
 
 df <- les
@@ -400,6 +413,264 @@ plot(two_way_anova, 1)
 
 
 
+### morphology
+library(stringr)
+
+morph <- read.xlsx("morph.xlsx", sheetIndex = 1)
+morph$group <- as.factor(morph$group)
+morph$name <- as.factor(morph$name)
+
+morph$heart_weight <- morph$rv + morph$s + morph$lv
+morph$rv_bw <- morph$rv / morph$body_weight
+morph$rv_Lt <- morph$rv / morph$L_tibia
+morph$rv_hw <- morph$rv / morph$heart_weight
+morph$hw_bw <- morph$heart_weight / morph$body_weight
+morph$hw_Lt <- morph$heart_weight / morph$L_tibia
+morph$group_number <- str_sub(morph$name,-2,-1)
+morph$group_number <- as.numeric(morph$group_number)
+
+morph$group_number <- as.factor(morph$group_number)
+
+# box plots
+ggplot(morph, aes(x = group, body_weight)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, rv)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, s)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, lv)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, L_tibia)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, heart_weight)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, rv_bw)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, rv_hw)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, rv_Lt)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, hw_bw)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+
+ggplot(morph, aes(x = group, hw_Lt)) +
+  geom_boxplot(aes(col = group))+
+  geom_point(size = 3, aes(col = group_number))
+###
 
 
-  
+# descriptive statistics
+
+descriptive_statistics_rv_hw <- morph %>%
+  group_by(group) %>%
+  summarise_at('rv_hw',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_rv_hw$c_i <- descriptive_statistics_rv_hw$fn1$y - descriptive_statistics_rv_hw$fn1$ymin
+
+descriptive_statistics_rv <- morph %>%
+  group_by(group) %>%
+  summarise_at('rv',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_rv$c_i <- descriptive_statistics_rv$fn1$y - descriptive_statistics_rv$fn1$ymin
+
+###
+
+norm_distr_rv_hw <- morph %>%
+  group_by(group) %>%
+  summarise(n = n(), var = var(rv_hw, na.rm=T), sd = sd(rv_hw, na.rm=T),
+            method = shapiro.test(rv_hw)$method,
+            p.value = shapiro.test(rv_hw)$p.value)
+
+norm_distr_rv <- morph %>%
+  group_by(group) %>%
+  summarise(n = n(), var = var(rv, na.rm=T), sd = sd(rv, na.rm=T),
+            method = shapiro.test(rv)$method,
+            p.value = shapiro.test(rv)$p.value)
+
+###
+
+leveneTest(rv_hw ~ group, data = morph)
+leveneTest(rv ~ group, data = morph)
+
+bartlett.test(rv_hw ~ group, data = morph)
+bartlett.test(rv ~ group, data = morph)
+
+###
+
+fit_rv_hw <- aov(rv_hw ~ group, data = morph)
+summary(fit_rv_hw)
+t.test(rv_hw ~ group, data = morph)
+wilcox.test(rv ~ group, data = morph) 
+
+##################################_____________Gerzen_____________############################################
+
+Gerzen <- read.xlsx("Gerzen.xlsx", sheetIndex = 4)
+
+Gerzen$group <- as.factor(Gerzen$group)
+Gerzen$camera <- as.factor(Gerzen$camera)
+Gerzen$forma <- as.factor(Gerzen$forma)
+Gerzen$isoform <- as.factor(Gerzen$isoform)
+Gerzen$g_c <- paste(Gerzen$group, Gerzen$camera)
+Gerzen$g_c_f <- paste(Gerzen$g_c, Gerzen$forma)
+Gerzen$g_c_i <- paste(Gerzen$g_c, Gerzen$isoform) 
+Gerzen$g_c_f <- as.factor(Gerzen$g_c_f)
+Gerzen$g_c_i <- as.factor(Gerzen$g_c_i)
+
+
+velocity <- Gerzen[c("vel", 'camera', 'group',"g_c_f", 'forma')]
+fraction <- Gerzen[c("fraction", 'camera', 'group',"g_c_f", 'forma')]
+mhc <- Gerzen[c("MHC", 'camera', 'group',"g_c", "isoform", "g_c_i")]
+# mhc <- na.omit(mhc)
+####
+
+ggplot(velocity, aes(x = g_c_f, vel)) +
+  geom_boxplot(aes(col = camera, fill=group))+
+  geom_point(size = 3, aes(col = forma))
+
+ggplot(fraction, aes(x = g_c_f, fraction)) +
+  geom_boxplot(aes(col = camera, fill=group))+
+  geom_point(size = 3, aes(col = forma))
+
+ggplot(mhc, aes(x = g_c_i, MHC)) +
+  geom_boxplot(aes(col = camera))+
+  geom_point(size = 3, aes(col = group))
+
+####
+descriptive_statistics_g_vel <- velocity %>%
+  group_by(g_c_f) %>%
+  summarise_at('vel',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_g_vel$c_i <- descriptive_statistics_g_vel$fn1$y - descriptive_statistics_g_vel$fn1$ymin
+
+descriptive_statistics_g_fraction <- fraction %>%
+  group_by(g_c_f) %>%
+  summarise_at('fraction',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_g_fraction$c_i <- descriptive_statistics_g_fraction$fn1$y - descriptive_statistics_g_fraction$fn1$ymin
+
+descriptive_statistics_g_mhc <- mhc %>%
+  group_by(g_c_i) %>%
+  summarise_at('MHC',c(mean_cl_boot, n_), na.rm=TRUE)
+descriptive_statistics_g_mhc$c_i <- descriptive_statistics_g_mhc$fn1$y - descriptive_statistics_g_mhc$fn1$ymin
+
+### check normal distribution
+
+norm_distr_g_vel <- velocity %>%
+  group_by(g_c_f) %>%
+  summarise(n = n(), var = var(vel, na.rm=T), sd = sd(vel, na.rm=T),
+            method = shapiro.test(vel)$method,
+            p.value = shapiro.test(vel)$p.value)
+
+norm_distr_g_fraction <- fraction %>%
+  group_by(g_c_f) %>%
+  summarise(n = n(), var = var(fraction, na.rm=T), sd = sd(fraction, na.rm=T),
+            method = shapiro.test(fraction)$method,
+            p.value = shapiro.test(fraction)$p.value)
+
+norm_distr_g_mhc <- mhc %>%
+  group_by(g_c_i) %>%
+  summarise(n = n(), var = var(MHC, na.rm=T), sd = sd(MHC, na.rm=T),
+            method = shapiro.test(MHC)$method,
+            p.value = shapiro.test(MHC)$p.value)
+
+### check homogenity of dispersion
+
+leveneTest(vel ~ g_c_f, data = velocity)
+leveneTest(fraction ~ g_c_f, data = fraction)
+leveneTest(MHC ~ g_c_i, data = mhc)
+
+bartlett.test(vel ~ g_c_f, data = velocity)
+bartlett.test(fraction ~ g_c_f, data = fraction)
+bartlett.test(MHC ~ g_c_i, data = mhc)
+
+### ANOVA
+
+# velocity
+print('скорость реконструированой тонкой нити факторы камера и группа')
+scheirerRayHare(vel ~ camera * group, data = velocity[velocity$forma == 'RTF',], type = "II")
+print('скорость актина факторы камера и группа')
+scheirerRayHare(vel ~ camera * group, data = velocity[velocity$forma == 'F-actin',], type = "II")
+
+# RTF
+tmp <- dunnTest(vel ~ g_c_f, velocity[velocity$forma == 'RTF',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+vel_dann <- as.data.frame(tmp$res)
+vel_dann <- vel_dann[c(1,2,5,6),]
+vel_dann$P.adj <- vel_dann$P.unadj * 4
+vel_dann
+vel_dann[vel_dann$P.adj < 0.05,]
+
+# F-actin
+tmp <- dunnTest(vel ~ g_c_f, velocity[velocity$forma == 'F-actin',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+vel_dann <- as.data.frame(tmp$res)
+vel_dann <- vel_dann[c(1,2,5,6),]
+vel_dann$P.adj <- vel_dann$P.unadj * 4
+vel_dann
+vel_dann[vel_dann$P.adj < 0.05,]
+####
+
+# fraction
+print('fraction реконструированой тонкой нити факторы камера и группа')
+scheirerRayHare(fraction ~ camera * group, data = fraction[fraction$forma == 'RTF',], type = "II")
+print('скорость актина факторы камера и группа')
+scheirerRayHare(fraction ~ camera * group, data = fraction[fraction$forma == 'F-actin',], type = "II")
+
+# RTF
+tmp <- dunnTest(fraction ~ g_c_f, fraction[fraction$forma == 'RTF',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+fraction_dann <- as.data.frame(tmp$res)
+fraction_dann <- fraction_dann[c(1,2,5,6),]
+fraction_dann$P.adj <- fraction_dann$P.unadj * 4
+fraction_dann[fraction_dann$P.adj < 0.05,]
+
+# F-actin
+tmp <- dunnTest(fraction ~ g_c_f, fraction[fraction$forma == 'F-actin',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+fraction_dann <- as.data.frame(tmp$res)
+fraction_dann <- fraction_dann[c(1,2,5,6),]
+fraction_dann$P.adj <- fraction_dann$P.unadj * 4
+fraction_dann[fraction_dann$P.adj < 0.05,]
+
+# MHC 
+scheirerRayHare(MHC ~ camera * group, data = mhc[mhc$isoform == '??-MHC',], type = "II")
+scheirerRayHare(MHC ~ camera * group, data = mhc[mhc$isoform == '??-MHC',], type = "II")
+# ??-MHC
+tmp <- dunnTest(MHC ~ g_c, mhc[mhc$isoform == '??-MHC',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+mhc_dann <- as.data.frame(tmp$res)
+mhc_dann <- mhc_dann[c(1,2,5,6),]
+mhc_dann$P.adj <- mhc_dann$P.unadj * 4
+mhc_dann[mhc_dann$P.adj < 0.05,]
+# ??-MHC
+tmp <- dunnTest(MHC ~ g_c, mhc[mhc$isoform == '??-MHC',], method="bonferroni", list=TRUE)
+print(tmp, dunn.test.results=TRUE)
+
+mhc_dann <- as.data.frame(tmp$res)
+mhc_dann <- mhc_dann[c(1,2,5,6),]
+mhc_dann$P.adj <- mhc_dann$P.unadj * 4
+mhc_dann[mhc_dann$P.adj < 0.05,]
+
+
+
+###
